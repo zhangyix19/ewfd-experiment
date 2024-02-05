@@ -1,0 +1,3 @@
+[submodule "defense/ewfd_def"]
+	path = defense/ewfd_def
+	url = git@github.com:eBPF-Research/Tor-Variable-Defense.git

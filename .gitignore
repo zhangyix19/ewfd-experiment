@@ -1,0 +1,14 @@
+# archive
+archive/
+# data and run
+data
+data/
+!data/README.md
+run/
+csv/
+model.pth
+# tmp
+tmp.*
+test.*
+*.pyc
+__pycache__/
