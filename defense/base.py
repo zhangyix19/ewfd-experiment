@@ -13,7 +13,9 @@ class Defense:
 
     @staticmethod
     def get_real(trace):
-        return trace[abs(trace[:, 1]) == 1]
+        real = trace.copy()
+        real[:, 1] = np.sign(real[:, 1])
+        return real
 
     def defend_real(self, trace):
         # 处理单条trace

@@ -1,0 +1,12 @@
+torch
+tqdm
+joblib
+scikit-learn
+numpy
+pandas
+tensorboardX
+shap
+jupyter
+nptyping
+tensorboard
+pynvml

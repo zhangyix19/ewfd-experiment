@@ -6,7 +6,7 @@ from defense.base import Defense
 
 
 class RegularTor(Defense):
-    def __init__(self, param={}, mode="pessimistic", name="regulartor"):
+    def __init__(self, param={}, mode="moderate", name="regulartor"):
         self.param = {
             "orig_rate": 277,
             "depreciation_rate": 0.94,
@@ -15,8 +15,9 @@ class RegularTor(Defense):
             "upload_ratio": 3.95,
             "delay_cap": 1.77,
         }
-        self.param.update(param)
-        self.name = f"{name}_{mode}"
+        self.name = name
+        if mode != "moderate":
+            self.name += f"_{mode}"
         self.mode = mode
 
     def defend_real(self, trace):

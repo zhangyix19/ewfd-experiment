@@ -16,7 +16,9 @@ class FronTamaraw(Defense):
             "client_min_dummy_pkt_num": 1,
         }
         self.param.update(param)
-        self.name = f"{name}_{mode}"
+        self.name = name
+        if mode != "moderate":
+            self.name += f"_{mode}"
         self.mode = mode
 
     def defend_real(self, trace):

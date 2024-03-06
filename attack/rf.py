@@ -99,7 +99,7 @@ class RF(DNNAttack):
     def __init__(self, trace_length, num_classes, gpu):
         super().__init__(trace_length, num_classes, gpu)
         self.model = None
-        self.num_epochs = 600
+        self.num_epochs = 400
         self.batch_size = 800
         self.learning_rate = 0.0005
         self.criterion = nn.CrossEntropyLoss()
@@ -161,13 +161,7 @@ class RF(DNNAttack):
         # get features
         # traces = [self.packets_per_slot(trace) for trace in traces]
 
-        while True:
-            cpu_num = int((psutil.cpu_count() - psutil.cpu_percent()) * 0.7)
-            if cpu_num > 10:
-                break
-            time.sleep(5)
-
-        with mp.Pool(cpu_num) as pool:
+        with mp.Pool(10) as pool:
             tqdm_iter = tqdm(
                 pool.imap(self.packets_per_slot, traces),
                 total=len(traces),

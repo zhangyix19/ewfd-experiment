@@ -6,7 +6,7 @@ from defense.base import Defense
 
 
 class AdpTamaraw(Defense):
-    def __init__(self, param={}, mode="pessimistic", name="adptamaraw"):
+    def __init__(self, param={}, mode="moderate", name="adptamaraw"):
         self.param = {
             "tol": 0.8,
             "client_burst_size": 3,
@@ -15,7 +15,9 @@ class AdpTamaraw(Defense):
             "server_interval": 0.05,
         }
         self.param.update(param)
-        self.name = f"{name}_{mode}"
+        self.name = name
+        if mode != "moderate":
+            self.name += f"_{mode}"
         self.mode = mode
 
     def defend_real(self, trace):

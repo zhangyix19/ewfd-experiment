@@ -10,7 +10,6 @@ from tensorboardX import SummaryWriter
 import attack as wfpattack
 from argparser import parse_taskname, trainparser
 from dataset import TraceDataset
-import joblib
 
 # prase arguments
 args = trainparser().parse_args()
@@ -19,11 +18,12 @@ random_seed = 11
 log_root = "./run"
 ds_root = "./data"
 dump_root = "./data/dump"
-cache_root = "./data/cache"
 time_str = time.strftime("%Y%m%d", time.localtime())
 taskname = parse_taskname(args)
-log_dir = join(log_root, time_str + args.note, args.attack, taskname)
-dump_dir = join(dump_root, time_str + args.note, args.attack, taskname)
+log_dir = join(log_root, time_str + args.note + "ow", args.attack, taskname)
+dump_dir = join(dump_root, time_str + args.note + "ow", args.attack, taskname)
+writer = SummaryWriter(log_dir)
+writer.add_text("args", str(args))
 
 
 # dataset
@@ -31,8 +31,8 @@ def get_dataset(dataset, defenses):
     global ds_root
     ds_dict = {}
     for defense in defenses:
-        ds = TraceDataset(dataset, ds_root, cw_size=(args.cw_size[0], args.cw_size[1]))
-        ds.load_defended_by_name(defense)
+        ds = TraceDataset(dataset, ds_root, scenario="open-world")
+        ds.load_defended_by_name(defense, args.length)
         ds_dict[defense] = ds
     return ds_dict
 
@@ -42,30 +42,18 @@ ds_dict = get_dataset(args.dataset, total_defenses)
 num_calsses = ds_dict[total_defenses[0]].num_classes()
 ds_len = len(ds_dict[total_defenses[0]])
 
-attack: wfpattack.Attack = wfpattack.get_attack(args.attack)(args.length, num_calsses, args.gpu)
-
 
 # preprocess
-def get_cached_data(ds, attack):
-    global cache_root
-    cache_path = join(cache_root, f"{attack.name}_{ds.get_hash()}.pkl")
-    if os.path.exists(cache_path):
-        return joblib.load(cache_path)
-    else:
-        data = attack.data_preprocess(*ds[:])
-        joblib.dump(data, cache_path)
-        return data
+attack: wfpattack.DNNAttack = wfpattack.get_attack(args.attack)(args.length, num_calsses, args.gpu)
+ds_dict = {name: attack.data_preprocess(*ds[:]) for name, ds in ds_dict.items()}
 
-
-# ds_dict = {name: attack.data_preprocess(*ds[:]) for name, ds in ds_dict.items()}
-ds_dict = {name: get_cached_data(ds, attack) for name, ds in ds_dict.items()}
 train_slice, valid_slice = train_test_split(
     [i for i in range(ds_len)], test_size=0.2, random_state=random_seed
 )
-train_features = attack.concat([ds_dict[defense]["traces"][train_slice] for defense in args.train])
-train_labels = attack.concat([ds_dict[defense]["labels"][train_slice] for defense in args.train])
-valid_features = attack.concat([ds_dict[defense]["traces"][valid_slice] for defense in args.train])
-valid_labels = attack.concat([ds_dict[defense]["labels"][valid_slice] for defense in args.train])
+train_features = torch.concat([ds_dict[defense]["traces"][train_slice] for defense in args.train])
+train_labels = torch.concat([ds_dict[defense]["labels"][train_slice] for defense in args.train])
+valid_features = torch.concat([ds_dict[defense]["traces"][valid_slice] for defense in args.train])
+valid_labels = torch.concat([ds_dict[defense]["labels"][valid_slice] for defense in args.train])
 test_data = {
     defense: {
         "features": ds_dict[defense]["traces"][valid_slice],
@@ -88,9 +76,6 @@ if args.dump:
             labels=ds_dict[defense]["labels"],
         )
 attack.init_model()
-
-writer = SummaryWriter(log_dir)
-writer.add_text("args", str(args))
 attack.train(
     train_features,
     train_labels,
@@ -99,6 +84,5 @@ attack.train(
     writer=writer,
     save_root=dump_dir,
     test=test_data,
-    batch_size=args.batch_size,
     num_epochs=args.epoch,
 )

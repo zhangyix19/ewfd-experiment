@@ -11,4 +11,5 @@ from wfgan import Wfgan
 from regulartor import RegularTor
 from frontamaraw import FronTamaraw
 from adptamaraw import AdpTamaraw
-from cmwfd import Cmwfd
+from switch import Switch
+from wtfpad import Spring, Interspace, Wtfpad

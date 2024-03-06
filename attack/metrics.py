@@ -25,8 +25,14 @@ def calculate_tpr_fpr(y, y_pred, n_classes):
 
 
 def cal_metrics(y, y_pred, n_classes):
-    # 计算宏平均 TPR 和 FPR
+    # 转换成one-hot形式
+    if y.ndim == 1:
+        y = np.eye(n_classes)[y]
+    if y_pred.ndim == 1:
+        y_pred = np.eye(n_classes)[y_pred]
+    # 如果 y_pred 是概率值，转换成类别
     y_pred = np.eye(n_classes)[y_pred.argmax(axis=1)]
+    # 计算宏平均 TPR 和 FPR
     tprs, fprs = calculate_tpr_fpr(y, y_pred, n_classes)
     macro_tpr = np.mean(tprs)
     macro_fpr = np.mean(fprs)

@@ -5,7 +5,8 @@ data
 data/
 !data/README.md
 run/
-csv/
+log/
+fig/
 model.pth
 # tmp
 tmp.*

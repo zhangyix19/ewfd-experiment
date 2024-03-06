@@ -6,7 +6,7 @@ from defense.base import Defense
 
 
 class Front(Defense):
-    def __init__(self, param={}, mode="pessimistic", name="front"):
+    def __init__(self, param={}, mode="moderate", name="front"):
         self.param = {
             "client_dummy_pkt_num": 3000,
             "server_dummy_pkt_num": 3000,
@@ -17,7 +17,9 @@ class Front(Defense):
             "server_min_dummy_pkt_num": 1,
         }
         self.param.update(param)
-        self.name = f"{name}_{mode}"
+        self.name = name
+        if mode != "moderate":
+            self.name += f"_{mode}"
         self.mode = mode
 
     def defend_real(self, trace):

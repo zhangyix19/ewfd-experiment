@@ -6,10 +6,12 @@ from defense.base import Defense
 
 
 class Wfgan(Defense):
-    def __init__(self, param={}, mode="pessimistic", name="wfgan"):
+    def __init__(self, param={}, mode="moderate", name="wfgan"):
         self.param = {"tol": 0.8}
         self.param.update(param)
-        self.name = f"{name}_{mode}"
+        self.name = name
+        if mode != "moderate":
+            self.name += f"_{mode}"
         self.mode = mode
 
     def defend_real(self, trace):
