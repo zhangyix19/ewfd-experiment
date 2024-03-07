@@ -167,6 +167,7 @@ class TraceDataset:
 
         self.overheads = []  # overheads for each trace
         self.overhead = []  # [time_overhead, bandwidth_overhead]
+        self.init_hash()
 
     def prepare_map(self):
         if self.prepared:
@@ -330,7 +331,7 @@ class TraceDataset:
     def unmonitored_labels(self):
         return [self.cw_size[0] + 1]
 
-    def base_hash(self):
+    def init_hash(self):
         self.hash = hashlib.md5(
             str(
                 (
@@ -403,12 +404,13 @@ class TraceDataset:
         self.prepared = False
         if not exists(self.cell_level_file):
             self.to_cell_level()
-        data = np.load(self.cell_level_file, allow_pickle=True)
-        traces: List[NDArray[Shape["* pkts, [ts, dir] dims"], Float]] = data["traces"]
-        labels: NDArray[Shape["* labels"], Any] = data["labels"]
-        self.traces = traces
-        self.labels = labels
-        self.base_hash().update(str(os.stat(self.cell_level_file)).encode(encoding="utf-8"))
+        else:
+            data = np.load(self.cell_level_file, allow_pickle=True)
+            traces: List[NDArray[Shape["* pkts, [ts, dir] dims"], Float]] = data["traces"]
+            labels: NDArray[Shape["* labels"], Any] = data["labels"]
+            self.traces = traces
+            self.labels = labels
+        self.init_hash().update(str(os.stat(self.cell_level_file)).encode(encoding="utf-8"))
 
     def defend(self, defense, parallel=True):
         if "defends_parallel" not in dir(defense):
@@ -456,11 +458,11 @@ class TraceDataset:
             defended_file = join(self.defended_dir, defense_name + ".npz")
             assert exists(defended_file), f"Defended file does not exist: {defended_file}"
             data = np.load(defended_file, allow_pickle=True)
-            self.base_hash().update(str(os.stat(defended_file)).encode(encoding="utf-8"))
             self.traces = data["traces"]
             self.labels = data["labels"]
             assert len(self.traces) == len(self.ud_traces)
             self.overhead = self.read_overhead_by_name(defense_name)
+            self.init_hash().update(str(os.stat(defended_file)).encode(encoding="utf-8"))
 
     def load_defended(self, defense: Defense, parallel=True):
         if self.ud_traces is None:
@@ -471,10 +473,11 @@ class TraceDataset:
             self.defend(defense, parallel)
         else:
             data = np.load(defended_file, allow_pickle=True)
-            self.base_hash().update(str(os.stat(defended_file)).encode(encoding="utf-8"))
+
             self.traces = data["traces"]
             self.labels = data["labels"]
             assert len(self.traces) == len(self.ud_traces)
+        self.init_hash().update(str(os.stat(defended_file)).encode(encoding="utf-8"))
 
     def cal_overhead(self, defense=None):
         if defense:
