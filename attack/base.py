@@ -48,12 +48,13 @@ class Attack:
 class DNNAttack(Attack):
     name = "DNNAttack"
 
-    def __init__(self, trace_length, num_classes, gpu):
+    def __init__(self, trace_length, num_classes, gpu, n_jobs):
         super().__init__(trace_length)
         self.num_classes = num_classes
         self.device = torch.device(
             f"cuda:{gpu}" if gpu != "cpu" and torch.cuda.is_available() else "cpu"
         )
+        self.n_jobs = n_jobs
         self.model = None
         self.criterion = None
         self.optimizer = None

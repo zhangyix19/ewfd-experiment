@@ -9,16 +9,18 @@ defended [npz file]: contains packet traces(NDArray[Shape["* traces, * cells, [t
 import hashlib
 import multiprocessing as mp
 import os
+import time
 from collections import Counter
 from os.path import exists, join
 from typing import *
 
+import joblib
 import numpy as np
+import psutil
 from nptyping import *
 from tqdm import tqdm
 
 from defense import Defense
-import joblib
 
 
 def pkt2cell_single_direction(trace_3, cell_size):
@@ -104,7 +106,7 @@ def func_wrapper(job):
 
 def run_parallel(task_name, func, argss: List[Tuple]):
     jobs = [(func, args) for args in argss]
-    with mp.Pool(100) as p:
+    with mp.Pool(int(psutil.cpu_count() * 0.9)) as p:
         imap_iter = p.imap(func_wrapper, jobs)
         results = [x for x in tqdm(imap_iter, total=len(jobs), desc=task_name)]
     return results
@@ -128,7 +130,7 @@ class TraceDataset:
     def __init__(
         self,
         name,
-        data_dir,
+        data_dir="data",
         scenario="closed-world",
         cw_size=(100, 100),
         ow_size=(10000, 1),
@@ -410,12 +412,8 @@ class TraceDataset:
 
     def defend(self, defense, parallel=True):
         if "defends_parallel" not in dir(defense):
-            # if available cpu<40,sleep
-            import time
 
-            import psutil
-
-            while psutil.cpu_count() - psutil.cpu_percent(interval=1) < 90:
+            while psutil.cpu_count() - psutil.cpu_percent(interval=1) < psutil.cpu_count() * 0.7:
                 time.sleep(1)
 
             defend_func = defense.defend
@@ -511,7 +509,7 @@ class TraceDataset:
             ]
 
         if format == "str":
-            return ",".join([name] + self.overhead)
+            return f"{name},{self.overhead[0]},{self.overhead[1]}"
         return self.overhead
 
     def to_wang_format(self, defense="undefend"):

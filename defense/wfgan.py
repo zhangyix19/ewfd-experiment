@@ -7,7 +7,7 @@ from defense.base import Defense
 
 class Wfgan(Defense):
     def __init__(self, param={}, mode="moderate", name="wfgan"):
-        self.param = {"tol": 0.8}
+        self.param = {"tol": 0.6}
         self.param.update(param)
         self.name = name
         if mode != "moderate":

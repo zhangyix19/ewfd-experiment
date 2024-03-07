@@ -96,11 +96,11 @@ cfg = {"N": [128, 128, "M", 256, 256, "M", 512]}
 class RF(DNNAttack):
     name = "RF"
 
-    def __init__(self, trace_length, num_classes, gpu):
-        super().__init__(trace_length, num_classes, gpu)
+    def __init__(self, trace_length, num_classes, gpu, n_jobs=10):
+        super().__init__(trace_length, num_classes, gpu, n_jobs)
         self.model = None
-        self.num_epochs = 400
-        self.batch_size = 800
+        self.num_epochs = 300
+        self.batch_size = 1000
         self.learning_rate = 0.0005
         self.criterion = nn.CrossEntropyLoss()
 
@@ -161,7 +161,7 @@ class RF(DNNAttack):
         # get features
         # traces = [self.packets_per_slot(trace) for trace in traces]
 
-        with mp.Pool(10) as pool:
+        with mp.Pool(self.n_jobs) as pool:
             tqdm_iter = tqdm(
                 pool.imap(self.packets_per_slot, traces),
                 total=len(traces),
