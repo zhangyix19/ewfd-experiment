@@ -415,7 +415,7 @@ class TraceDataset:
     def defend(self, defense, parallel=True):
         if "defends_parallel" not in dir(defense):
 
-            while psutil.cpu_count() - psutil.cpu_percent(interval=1) < psutil.cpu_count() * 0.7:
+            while psutil.cpu_count() - psutil.cpu_percent(interval=1) < psutil.cpu_count() * 0.3:
                 time.sleep(1)
 
             defend_func = defense.defend
