@@ -444,10 +444,12 @@ class TraceDataset:
         )
 
     def read_overhead_by_name(self, defense_name: str):
-        defended_file = join(self.defended_dir, defense_name + ".npz")
-        assert exists(defended_file), f"Defended file does not exist: {defended_file}"
-        data = np.load(defended_file, allow_pickle=True)
-        return list(data["overhead"]) if "overhead" in data.files else []
+        if defense_name != "undefend":
+            defended_file = join(self.defended_dir, defense_name + ".npz")
+            assert exists(defended_file), f"Defended file does not exist: {defended_file}"
+            data = np.load(defended_file, allow_pickle=True)
+            return list(data["overhead"]) if "overhead" in data.files else []
+        return []
 
     def load_defended_by_name(self, defense_name: str):
         self.prepared = False

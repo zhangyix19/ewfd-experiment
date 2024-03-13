@@ -9,32 +9,55 @@ import dataset
 
 
 def get_accuracy(log_file):
+    print(f"{log_file=}")
     ea = event_accumulator.EventAccumulator(log_file)
+    ea.Reload()
     paras_obj = ea.scalars.Items("valid/accuracy")
     return paras_obj[-1].value
 
 
-def get_overhead(dataset, defense):
-    ds = dataset.TraceDataset(dataset)
+def get_overhead(name, defense):
+    ds = dataset.TraceDataset(name)
     return ds.summary_overhead(defense)
 
 
 note = sys.argv[1]
-run_dir = join("run")
+run_dir = join("run", note)
+print(f"{run_dir=}")
 for attack in os.listdir(run_dir):
-    task_dir = join(run_dir, attack)
-    task_names = os.listdir(task_dir)
+    attack_dir = join(run_dir, attack)
+    print(f"{attack_dir=}")
     # with open(f"log/{note}_{attack}.csv", "w") as f:
     data = pd.DataFrame()
-    for name in os.listdir(task_dir):
-
-        assert (result := re.match(r"train_(?P<dataset>\S+)_d(?P<defense>\S+)", name))
-        dataset = result.groupdict()["dataset"]
+    for name in os.listdir(attack_dir):
+        assert (
+            result := re.match(r"train_(?P<ds_name>\S+)_d(?P<defense>\S+)", name)
+        ), f"Invalid task name: {name}"
+        ds_name = result.groupdict()["ds_name"]
         defense = result.groupdict()["defense"]
 
-        task_dir = join(run_dir, name)
+        task_dir = join(attack_dir, name)
         log_file = os.listdir(task_dir)[0]
+        print(f"{task_dir=}, {log_file=}")
         accuracy = get_accuracy(join(task_dir, log_file))
-        overhead = get_overhead(dataset, defense)
-        data = pd.concat([data, pd.Series([dataset, defense, accuracy] + overhead)], axis=1)
-    data.T.to_csv(f"log/{note}_{attack}.csv", index=False)
+        overhead = get_overhead(ds_name, defense)
+        data = pd.concat(
+            [
+                data,
+                pd.Series(
+                    [
+                        ds_name,
+                        defense,
+                        round(accuracy, 4),
+                        round(overhead[0], 4),
+                        round(overhead[1], 4),
+                    ]
+                ),
+            ],
+            axis=1,
+        )
+    data.T.to_csv(
+        f"log/{note}_{attack}.csv",
+        index=False,
+        header=["ds_name", "defense", "accuracy", "overhead_time", "overhead_data"],
+    )

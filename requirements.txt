@@ -10,3 +10,5 @@ jupyter
 nptyping
 tensorboard
 pynvml
+dpkt
+seaborn

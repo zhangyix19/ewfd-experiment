@@ -47,6 +47,8 @@ def get_cached_data(ds, attack, evaluate_slice):
             "labels": all_data["labels"][evaluate_slice],
         }
     else:
+        print("Cache not found, generating...")
+        exit(1)
         data = attack.data_preprocess(*ds[evaluate_slice])
         return data
 

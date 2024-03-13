@@ -12,7 +12,7 @@ import imgvalid.validator as imgvalidator
 
 parser = argparse.ArgumentParser()
 parser.add_argument("-d", "--dataset_name", type=str, default="undefend", help="dataset name")
-parser.add_argument("-g", "--cuda_id", type=int, default=0, help="gpu id")
+parser.add_argument("-g", "--cuda_id", type=str, default="0", help="gpu id")
 args = parser.parse_args()
 
 dataset_name = args.dataset_name
@@ -83,7 +83,7 @@ def get_path_list(dataset_name: str):
 path_list = get_path_list(dataset_name)
 print("path_list length: {}".format(len(path_list)))
 # validate images
-v = imgvalidator.Validator(device=f"cuda:{cuda_id}")
+v = imgvalidator.Validator(device=f"cuda:{cuda_id}" if cuda_id != "cpu" else "cpu")
 img_file_list = [path["captured_img_file"] for path in path_list]
 valid_list = v.validate(img_file_list)
 task_list = [path_list[i] for i in range(len(valid_list)) if valid_list[i]]
@@ -211,12 +211,12 @@ print("Begin extract features")
 # use multi-process to turn pcap to numpy
 
 # multiprocessing to extract features
-# with multiprocessing.Pool() as pool:
-#     # results:list(tuple()) = pool.map(run_task_func, task_list)
-#     print("Begin multiprocessing to extract features")
-#     results: list(tuple()) = list(tqdm(pool.imap(run_task_func, task_list), total=len(task_list)))
+with multiprocessing.Pool(30) as pool:
+    # results:list(tuple()) = pool.map(run_task_func, task_list)
+    print("Begin multiprocessing to extract features")
+    results: list(tuple()) = list(tqdm(pool.imap(run_task_func, task_list), total=len(task_list)))
 # or use single process to extract features
-results = [run_task_func(task) for task in tqdm(task_list)]
+# results = [run_task_func(task) for task in tqdm(task_list)]
 
 results = [(feature, label_str) for feature, label_str in results if feature is not None]
 
