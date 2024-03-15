@@ -32,7 +32,7 @@ def get_dataset(dataset, defenses):
     ds_dict = {}
     for defense in defenses:
         ds = get_ds(dataset, scenario="open-world")
-        ds.load_defended_by_name(defense)
+        ds.load_defended(defense)
         ds_dict[defense] = ds
     return ds_dict
 
