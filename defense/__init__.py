@@ -13,3 +13,4 @@ from frontamaraw import FronTamaraw
 from adptamaraw import AdpTamaraw
 from switch import Switch
 from wtfpad import Spring, Interspace, Wtfpad
+from ezdef import Ezpadding, Ezfixed, Ezlinear, Ezfixedrate

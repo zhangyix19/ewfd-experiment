@@ -9,7 +9,7 @@ from tensorboardX import SummaryWriter
 
 import attack as wfpattack
 from argparser import parse_taskname, trainparser
-from dataset import TraceDataset
+from dataset import get_ds
 
 # prase arguments
 args = trainparser().parse_args()
@@ -31,8 +31,8 @@ def get_dataset(dataset, defenses):
     global ds_root
     ds_dict = {}
     for defense in defenses:
-        ds = TraceDataset(dataset, ds_root, scenario="open-world")
-        ds.load_defended_by_name(defense, args.length)
+        ds = get_ds(dataset, scenario="open-world")
+        ds.load_defended_by_name(defense)
         ds_dict[defense] = ds
     return ds_dict
 
@@ -45,7 +45,8 @@ ds_len = len(ds_dict[total_defenses[0]])
 
 # preprocess
 attack: wfpattack.DNNAttack = wfpattack.get_attack(args.attack)(args.length, num_calsses, args.gpu)
-ds_dict = {name: attack.data_preprocess(*ds[:]) for name, ds in ds_dict.items()}
+# ds_dict = {name: attack.data_preprocess(*ds[:]) for name, ds in ds_dict.items()}
+ds_dict = {name: ds.get_cached_data(attack) for name, ds in ds_dict.items()}
 
 train_slice, valid_slice = train_test_split(
     [i for i in range(ds_len)], test_size=0.2, random_state=random_seed

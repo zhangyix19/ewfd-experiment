@@ -144,6 +144,7 @@ class TraceDataset:
         self.scenario = scenario
         self.cw_size = cw_size
         self.ow_size = ow_size
+        self.hash = None
 
         self.traces = None
         self.ud_traces = None
@@ -336,18 +337,13 @@ class TraceDataset:
             str(
                 (
                     self.name,
-                    self.scenario,
                     self.cw_size,
                     self.ow_size,
                     self.cell_size,
-                    self.do_truncate,
                 )
             ).encode(encoding="utf-8")
-        )
+        ).hexdigest()
         return self.hash
-
-    def get_hash(self):
-        return self.hash.hexdigest()
 
     def load_extracted(self):
         self.prepared = False
@@ -410,7 +406,7 @@ class TraceDataset:
             labels: NDArray[Shape["* labels"], Any] = data["labels"]
             self.traces = traces
             self.labels = labels
-        self.init_hash().update(str(os.stat(self.cell_level_file)).encode(encoding="utf-8"))
+        self.hash = self.init_hash() + f"_undefend_{os.stat(self.cell_level_file).st_mtime}"
 
     def defend(self, defense, parallel=True):
         if "defends_parallel" not in dir(defense):
@@ -464,7 +460,7 @@ class TraceDataset:
             self.labels = data["labels"]
             assert len(self.traces) == len(self.ud_traces)
             self.overhead = self.read_overhead_by_name(defense_name)
-            self.init_hash().update(str(os.stat(defended_file)).encode(encoding="utf-8"))
+            self.hash = self.init_hash() + f"_{defense_name}_{os.stat(defended_file).st_mtime}"
 
     def load_defended(self, defense: Defense, parallel=True):
         if self.ud_traces is None:
@@ -479,7 +475,7 @@ class TraceDataset:
             self.traces = data["traces"]
             self.labels = data["labels"]
             assert len(self.traces) == len(self.ud_traces)
-        self.init_hash().update(str(os.stat(defended_file)).encode(encoding="utf-8"))
+        self.hash = self.init_hash() + f"_{defense.name}_{os.stat(defended_file).st_mtime}"
 
     def cal_overhead(self, defense=None):
         if defense:
@@ -546,10 +542,29 @@ class TraceDataset:
                         f.write(f"{round(float(cell[0]),3)}\t{int(cell[1])}\n")
 
     def get_cached_data(self, attack):
-        cache_path = join(self.cache_dir, f"{attack.name}_{self.get_hash()}.pkl")
+        cache_path = join(self.cache_dir, f"{attack.name}_{self.hash}.pkl")
+        print(f"{cache_path=} if existed")
         if os.path.exists(cache_path):
             return joblib.load(cache_path)
         else:
             data = attack.data_preprocess(*self[:])
             joblib.dump(data, cache_path)
             return data
+
+
+def get_ds(name="undefend", scenario="closed-world"):
+    if name == "undefend":
+        ds = TraceDataset("undefend", scenario=scenario)
+    elif name == "df":
+        ds = TraceDataset(
+            "df",
+            scenario=scenario,
+            cw_size=(95, 1000),
+            ow_size=(40000, 1),
+            cell_size=543,
+            do_truncate=False,
+        )
+    else:
+        raise NotImplementedError
+    ds.load_cell_level()
+    return ds

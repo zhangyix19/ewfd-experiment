@@ -3,14 +3,12 @@ import time
 from os.path import join
 
 import numpy as np
-import torch
 from sklearn.model_selection import train_test_split
 from tensorboardX import SummaryWriter
 
 import attack as wfpattack
 from argparser import parse_taskname, trainparser
-from dataset import TraceDataset
-import joblib
+from dataset import get_ds
 
 # prase arguments
 args = trainparser().parse_args()
@@ -31,7 +29,7 @@ def get_dataset(dataset, defenses):
     global ds_root
     ds_dict = {}
     for defense in defenses:
-        ds = TraceDataset(dataset, ds_root, cw_size=(args.cw_size[0], args.cw_size[1]))
+        ds = get_ds(dataset)
         ds.load_defended_by_name(defense)
         ds_dict[defense] = ds
     return ds_dict
@@ -45,20 +43,8 @@ ds_len = len(ds_dict[total_defenses[0]])
 attack: wfpattack.Attack = wfpattack.get_attack(args.attack)(args.length, num_calsses, args.gpu)
 
 
-# preprocess
-def get_cached_data(ds, attack):
-    global cache_root
-    cache_path = join(cache_root, f"{attack.name}_{ds.get_hash()}.pkl")
-    if os.path.exists(cache_path):
-        return joblib.load(cache_path)
-    else:
-        data = attack.data_preprocess(*ds[:])
-        joblib.dump(data, cache_path)
-        return data
-
-
 # ds_dict = {name: attack.data_preprocess(*ds[:]) for name, ds in ds_dict.items()}
-ds_dict = {name: get_cached_data(ds, attack) for name, ds in ds_dict.items()}
+ds_dict = {name: ds.get_cached_data(attack) for name, ds in ds_dict.items()}
 train_slice, valid_slice = train_test_split(
     [i for i in range(ds_len)], test_size=0.2, random_state=random_seed
 )

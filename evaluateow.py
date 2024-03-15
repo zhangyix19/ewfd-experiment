@@ -4,7 +4,7 @@ from sklearn.model_selection import train_test_split
 
 import attack as wfpattack
 from argparser import evaluate_parser
-from dataset import TraceDataset
+from dataset import get_ds
 
 # prase arguments
 args = evaluate_parser().parse_args()
@@ -22,24 +22,22 @@ model_dir = (
 )
 assert os.path.exists(model_dir)
 
-print("Loading raw dataset...")
-raw_ds = TraceDataset(dataset, ds_root, scenario="open-world")
-raw_ds.load_cell_level()
-num_classes = raw_ds.num_classes()
+print("Loading test dataset...")
+test_ds = get_ds(dataset, scenario="open-world")
+test_ds.load_defended_by_name(test)
+num_classes = test_ds.num_classes()
 attack: wfpattack.DNNAttack = wfpattack.get_attack(attack_name)(args.length, num_classes, args.gpu)
 
-print("Loading test dataset...")
-test_ds = TraceDataset(dataset, ds_root, scenario="open-world")
-test_ds.load_defended_by_name(test)
 
-ds_len = len(raw_ds)
+ds_len = len(test_ds)
 
 _, evaluate_slice = train_test_split(
     [i for i in range(ds_len)], test_size=0.2, random_state=random_seed
 )
 print("Preparing test data...")
-test_data = attack.data_preprocess(*test_ds[evaluate_slice])
-test_features, test_labels = test_data["traces"], test_data["labels"]
+test_data = test_ds.get_cached_data(attack)
+test_features = test_data["traces"][evaluate_slice]
+test_labels = test_data["labels"][evaluate_slice]
 
 attack.init_model()
 print("Evaluating...")
