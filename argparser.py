@@ -44,7 +44,7 @@ def parse_taskname(args):
 
 def evaluate_parser():
     parser = argparse.ArgumentParser(description="WFP Experiment Test")
-    parser.add_argument("-g", "--gpu", default="9", type=str, help="Device id")
+    parser.add_argument("-g", "--gpu", default="0", type=str, help="Device id")
     parser.add_argument("-l", "--length", default=10000, type=int, help="length of features")
     parser.add_argument("--note", default=None, type=str, help="train note")
     parser.add_argument(

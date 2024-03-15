@@ -13,8 +13,10 @@ from ewfd_def.ezdef import (
 class Ezpadding(Defense):
     def __init__(self, param={}, mode="moderate", name="ezpadding"):
         self.param = {
-            "client_budget": 1500,
-            "server_budget": 3000,
+            "client_burst_num": 800,
+            "server_burst_num": 1600,
+            "client_budget": 1400,
+            "server_budget": 2800,
             "interval": 8,
             "sigma": 1,
         }
@@ -29,13 +31,19 @@ class Ezpadding(Defense):
         server = TorOneDirection()
         client.add_plugin(
             EzpaddingScheduleUnit(
-                self.param["client_budget"], self.param["interval"], self.param["sigma"]
+                self.param["client_burst_num"],
+                self.param["client_budget"],
+                self.param["interval"],
+                self.param["sigma"],
             ),
             DefensePlugin.TYPE_SCHEDULE,
         )
         server.add_plugin(
             EzpaddingScheduleUnit(
-                self.param["server_budget"], self.param["interval"], self.param["sigma"]
+                self.param["server_burst_num"],
+                self.param["server_budget"],
+                self.param["interval"],
+                self.param["sigma"],
             ),
             DefensePlugin.TYPE_SCHEDULE,
         )

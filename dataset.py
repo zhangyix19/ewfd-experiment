@@ -126,6 +126,10 @@ def cal_overhead(d, ud):
     return [ud_time, time_overhead, ud_bandwidth, bandwidth_overhead]
 
 
+def my_hash(*args):
+    return hashlib.md5(str(args).encode()).hexdigest()
+
+
 class TraceDataset:
     def __init__(
         self,
@@ -144,14 +148,15 @@ class TraceDataset:
         self.scenario = scenario
         self.cw_size = cw_size
         self.ow_size = ow_size
-        self.hash = None
+        self.do_truncate = do_truncate
+        self.cell_size = cell_size
+        self.status = "unload"
+        self.init_hash()
 
         self.traces = None
         self.ud_traces = None
         self.labels = None  # str
         self.labels_int = None  # int
-        self.do_truncate = do_truncate
-        self.cell_size = cell_size
 
         self.truncated_dir = join(self.data_dir, "truncated")
         self.truncated_file = join(self.truncated_dir, self.name + ".npz")
@@ -168,7 +173,17 @@ class TraceDataset:
 
         self.overheads = []  # overheads for each trace
         self.overhead = []  # [time_overhead, bandwidth_overhead]
-        self.init_hash()
+
+    def init_hash(self):
+        self.status = "unload"
+        self.hash = my_hash(self.name, self.cell_size)
+
+    def update_hash(self, status, *args):
+        self.status = status
+        self.hash = my_hash(self.hash, *args)
+
+    def get_hash(self):
+        return f"{self.status}_{self.hash}"
 
     def prepare_map(self):
         if self.prepared:
@@ -332,19 +347,6 @@ class TraceDataset:
     def unmonitored_labels(self):
         return [self.cw_size[0] + 1]
 
-    def init_hash(self):
-        self.hash = hashlib.md5(
-            str(
-                (
-                    self.name,
-                    self.cw_size,
-                    self.ow_size,
-                    self.cell_size,
-                )
-            ).encode(encoding="utf-8")
-        ).hexdigest()
-        return self.hash
-
     def load_extracted(self):
         self.prepared = False
         extracted_dir = join(self.data_dir, "extracted")
@@ -364,6 +366,7 @@ class TraceDataset:
         args = [(trace,) for trace in self.traces]
         self.traces = run_parallel("truncate", truncate, args)
         os.makedirs(self.truncated_dir, exist_ok=True)
+        print(f"Saving truncate file to {self.truncated_file}")
         np.savez_compressed(
             self.truncated_file,
             traces=np.array(self.traces, dtype=object),
@@ -372,6 +375,7 @@ class TraceDataset:
 
     def load_truncated(self):
         self.prepared = False
+        print(f"Try to load truncated data from {self.truncated_file} if existed")
         if not self.do_truncate:
             print("skip truncate")
             self.load_extracted()
@@ -384,29 +388,52 @@ class TraceDataset:
         self.traces = traces
         self.labels = labels
 
+    def get_defend_file(self, defense_name):
+        self.init_hash()
+        self.update_hash("cell_level", os.stat(self.cell_level_file).st_mtime)
+        os.makedirs(self.defended_dir, exist_ok=True)
+        return join(self.defended_dir, defense_name + f"_{self.get_hash()}.npz")
+
     def to_cell_level(self):
         self.load_truncated()
         # self.traces = [pkt2cell(trace) for trace in self.traces]
         args = [(trace, self.cell_size) for trace in self.traces]
         self.traces = run_parallel("to_cell_level", pkt2cell, args)
         os.makedirs(self.cell_level_dir, exist_ok=True)
+        print(f"Saving cell level file to {self.cell_level_file}")
         np.savez_compressed(
             self.cell_level_file,
             traces=np.array(self.traces, dtype=object),
             labels=self.labels,
         )
 
+    def save_undefend_file(self):
+        undefend_file = self.get_defend_file("undefend")
+        print(f"Saving undefend data to {undefend_file}")
+        np.savez_compressed(
+            undefend_file,
+            traces=np.array(self.traces, dtype=object),
+            labels=self.labels,
+            param=np.array(None),
+            overhead=[0, 0],
+        )
+        self.init_hash()
+
     def load_cell_level(self):
         self.prepared = False
+        print(f"Try to load cell level data from {self.cell_level_file} if existed")
         if not exists(self.cell_level_file):
             self.to_cell_level()
+            self.save_undefend_file()
         else:
             data = np.load(self.cell_level_file, allow_pickle=True)
             traces: List[NDArray[Shape["* pkts, [ts, dir] dims"], Float]] = data["traces"]
             labels: NDArray[Shape["* labels"], Any] = data["labels"]
             self.traces = traces
             self.labels = labels
-        self.hash = self.init_hash() + f"_undefend_{os.stat(self.cell_level_file).st_mtime}"
+        self.ud_traces = self.traces.copy()
+        self.init_hash()
+        self.update_hash("cell_level", os.stat(self.cell_level_file).st_mtime)
 
     def defend(self, defense, parallel=True):
         if "defends_parallel" not in dir(defense):
@@ -429,8 +456,9 @@ class TraceDataset:
         self.overhead = []
         self.summary_overhead()
         os.makedirs(self.defended_dir, exist_ok=True)
-        defended_file = join(self.defended_dir, defense.name + ".npz")
+        defended_file = self.get_defend_file(defense.name)
         assert self.overhead, "overhead not summarized"
+        print(f"Saving {defense.name} data to {defended_file}")
         np.savez_compressed(
             defended_file,
             traces=np.array(self.traces, dtype=object),
@@ -439,50 +467,37 @@ class TraceDataset:
             overhead=self.overhead,
         )
 
-    def read_overhead_by_name(self, defense_name: str):
-        if defense_name != "undefend":
-            defended_file = join(self.defended_dir, defense_name + ".npz")
-            assert exists(defended_file), f"Defended file does not exist: {defended_file}"
-            data = np.load(defended_file, allow_pickle=True)
-            return list(data["overhead"]) if "overhead" in data.files else []
-        return []
-
-    def load_defended_by_name(self, defense_name: str):
-        self.prepared = False
+    def load_defended(self, defense, parallel=True):
         if self.ud_traces is None:
             self.load_cell_level()
             self.ud_traces = self.traces
-        if defense_name != "undefend":
-            defended_file = join(self.defended_dir, defense_name + ".npz")
-            assert exists(defended_file), f"Defended file does not exist: {defended_file}"
-            data = np.load(defended_file, allow_pickle=True)
-            self.traces = data["traces"]
-            self.labels = data["labels"]
-            assert len(self.traces) == len(self.ud_traces)
-            self.overhead = self.read_overhead_by_name(defense_name)
-            self.hash = self.init_hash() + f"_{defense_name}_{os.stat(defended_file).st_mtime}"
-
-    def load_defended(self, defense: Defense, parallel=True):
-        if self.ud_traces is None:
-            self.load_cell_level()
-            self.ud_traces = self.traces
-        defended_file = join(self.defended_dir, defense.name + ".npz")
+        dname = defense if isinstance(defense, str) else defense.name
+        defended_file = self.get_defend_file(dname)
+        print(f"Try to load {dname} defended data from {defended_file} if existed")
         if not exists(defended_file):
+            assert not isinstance(defense, str)
             self.defend(defense, parallel)
         else:
-            data = np.load(defended_file, allow_pickle=True)
 
+            data = np.load(defended_file, allow_pickle=True)
             self.traces = data["traces"]
             self.labels = data["labels"]
             assert len(self.traces) == len(self.ud_traces)
-        self.hash = self.init_hash() + f"_{defense.name}_{os.stat(defended_file).st_mtime}"
+            self.overhead = self.read_overhead(dname)
+        self.init_hash()
+        self.update_hash(dname, os.stat(defended_file).st_mtime)
+        return dname
+
+    def read_overhead(self, defense):
+        dname = defense if isinstance(defense, str) else defense.name
+        defended_file = self.get_defend_file(dname)
+        assert exists(defended_file), f"Defended file does not exist: {defended_file}"
+        data = np.load(defended_file, allow_pickle=True)
+        return list(data["overhead"]) if "overhead" in data.files else []
 
     def cal_overhead(self, defense=None):
         if defense:
-            if isinstance(defense, str):
-                self.load_defended_by_name(defense)
-            else:
-                self.load_defended(defense)
+            self.load_defended(defense)
         assert self.traces is not None and self.ud_traces is not None
         self.prepare_map()
         self.overheads = []
@@ -495,11 +510,7 @@ class TraceDataset:
 
     def summary_overhead(self, defense=None, format=None):
         if defense is not None:
-            if isinstance(defense, str):
-                name = defense
-            else:
-                name = defense.name
-            self.overhead = self.read_overhead_by_name(name)
+            self.overhead = self.read_overhead(defense)
 
         if not self.overhead:
             self.cal_overhead(defense)
@@ -510,16 +521,12 @@ class TraceDataset:
             ]
 
         if format == "str":
-            return f"{name},{self.overhead[0]},{self.overhead[1]}"
+            dname = defense if isinstance(defense, str) else defense.name
+            return f"{dname},{self.overhead[0]},{self.overhead[1]}"
         return self.overhead
 
     def to_wang_format(self, defense="undefend"):
-        if isinstance(defense, str):
-            self.load_defended_by_name(defense)
-            name = defense
-        else:
-            self.load_defended(defense)
-            name = defense.name
+        name = self.load_defended(defense)
         self.prepare_map()
         wang_dir = join(self.data_dir, "wang", self.name, name)
         os.makedirs(wang_dir, exist_ok=True)
@@ -542,19 +549,23 @@ class TraceDataset:
                         f.write(f"{round(float(cell[0]),3)}\t{int(cell[1])}\n")
 
     def get_cached_data(self, attack):
-        cache_path = join(self.cache_dir, f"{attack.name}_{self.hash}.pkl")
-        print(f"{cache_path=} if existed")
+        cache_path = join(
+            self.cache_dir,
+            f"{self.name}_{attack.name}_{self.status}_{my_hash(self.hash,self.scenario,self.cw_size if self.scenario=='closed-world' else self.ow_size)}.pkl",
+        )
+        print(f"Try to load cached processed data from {cache_path} if existed")
         if os.path.exists(cache_path):
             return joblib.load(cache_path)
         else:
             data = attack.data_preprocess(*self[:])
+            print(f"Saving processed data to {cache_path}")
             joblib.dump(data, cache_path)
             return data
 
 
-def get_ds(name="undefend", scenario="closed-world"):
-    if name == "undefend":
-        ds = TraceDataset("undefend", scenario=scenario)
+def get_ds(name="ours", scenario="closed-world"):
+    if name == "ours":
+        ds = TraceDataset("ours", scenario=scenario)
     elif name == "df":
         ds = TraceDataset(
             "df",
