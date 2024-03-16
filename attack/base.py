@@ -138,7 +138,7 @@ class DNNAttack(Attack):
             metrics_dict.update({"loss": train_sum_loss / y_true.shape[0]})
 
             self.writeWriter(writer, metrics_dict, epoch, "train")
-            if save_root and epoch % 50 == 0:
+            if save_root and epoch % max(10, round(num_epochs / 100) * 10) == 0:
                 self.save_model(save_root, epoch)
             # test
             if test:
