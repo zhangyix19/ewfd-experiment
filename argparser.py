@@ -32,6 +32,7 @@ def trainparser():
     parser.add_argument("--batch_size", default=0, type=int, help="batch size")
     parser.add_argument("--cw_size", default=[100, 100], type=int, nargs="+", help="batch size")
     parser.add_argument("--dump", action="store_true", help="dump dataset")
+    parser.add_argument("--nodate", action="store_true", help="no date in note")
 
     return parser
 
