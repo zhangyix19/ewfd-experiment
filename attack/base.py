@@ -48,7 +48,7 @@ class Attack:
 class DNNAttack(Attack):
     name = "DNNAttack"
 
-    def __init__(self, trace_length, num_classes, gpu, n_jobs):
+    def __init__(self, trace_length, num_classes, gpu, n_jobs=10):
         super().__init__(trace_length)
         self.num_classes = num_classes
         self.device = torch.device(
