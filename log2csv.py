@@ -17,7 +17,7 @@ def get_accuracy(log_file):
 
 
 def get_overhead(name, defense):
-    ds = dataset.TraceDataset(name)
+    ds = dataset.TraceDataset(name, cell_size=543 if name == "df" else 536)
     return ds.summary_overhead(defense)
 
 
@@ -40,7 +40,7 @@ for attack in os.listdir(run_dir):
         log_file = os.listdir(task_dir)[0]
         print(f"{task_dir=}, {log_file=}")
         accuracy = get_accuracy(join(task_dir, log_file))
-        overhead = get_overhead(ds_name, defense)
+        overhead = get_overhead(ds_name, defense) if "&" not in defense else (-1, -1)
         data = pd.concat(
             [
                 data,
