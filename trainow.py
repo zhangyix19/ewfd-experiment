@@ -21,8 +21,8 @@ dump_root = "./data/dump"
 time_str = time.strftime("%Y%m%d", time.localtime())
 taskname = parse_taskname(args)
 note = args.note if args.nodate else time_str + args.note
-log_dir = join(log_root, note, args.attack, taskname)
-dump_dir = join(dump_root, note, args.attack, taskname)
+log_dir = join(log_root, note + "ow", args.attack, taskname)
+dump_dir = join(dump_root, note + "ow", args.attack, taskname)
 
 writer = SummaryWriter(log_dir)
 writer.add_text("args", str(args))
