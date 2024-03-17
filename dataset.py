@@ -140,6 +140,7 @@ class TraceDataset:
         ow_size=(10000, 1),
         cell_size=536,
         do_truncate=True,
+        use_cache=False,
     ):
         self.name = name
         self.data_dir = data_dir
@@ -151,12 +152,13 @@ class TraceDataset:
         self.do_truncate = do_truncate
         self.cell_size = cell_size
         self.status = "unload"
+        self.use_cache = use_cache
         self.init_hash()
 
-        self.traces = None
-        self.ud_traces = None
-        self.labels = None  # str
-        self.labels_int = None  # int
+        self.traces = []
+        self.ud_traces = []
+        self.labels = []  # str
+        self.labels_int = []  # int
 
         self.truncated_dir = join(self.data_dir, "truncated")
         self.truncated_file = join(self.truncated_dir, self.name + ".npz")
@@ -186,9 +188,10 @@ class TraceDataset:
         return f"{self.status}_{self.hash}"
 
     def prepare_map(self):
+        assert not self.use_cache
         if self.prepared:
             return
-        assert self.traces is not None and self.labels is not None
+        assert len(self.traces) and len(self.labels)
         counter = Counter(self.labels)
         assert (
             counter.most_common(self.cw_size[0])[-1][1] >= self.cw_size[1]
@@ -241,6 +244,7 @@ class TraceDataset:
             raise NotImplementedError
 
     def __getitem__(self, item):
+        assert not self.use_cache
         self.prepare_map()
         if self.scenario == "closed-world":
             if isinstance(item, slice):
@@ -408,6 +412,7 @@ class TraceDataset:
         )
 
     def save_undefend_file(self):
+        assert not self.use_cache
         undefend_file = self.get_defend_file("undefend")
         print(f"Saving undefend data to {undefend_file}")
         np.savez_compressed(
@@ -427,15 +432,14 @@ class TraceDataset:
             self.save_undefend_file()
         else:
             data = np.load(self.cell_level_file, allow_pickle=True)
-            traces: List[NDArray[Shape["* pkts, [ts, dir] dims"], Float]] = data["traces"]
-            labels: NDArray[Shape["* labels"], Any] = data["labels"]
-            self.traces = traces
-            self.labels = labels
+            self.traces = data["traces"] if not self.use_cache else []
+            self.labels = data["labels"]
         self.ud_traces = self.traces.copy()
         self.init_hash()
         self.update_hash("cell_level", os.stat(self.cell_level_file).st_mtime)
 
     def defend(self, defense, parallel=True):
+        assert not self.use_cache
         if "defends_parallel" not in dir(defense):
 
             while psutil.cpu_count() - psutil.cpu_percent(interval=1) < psutil.cpu_count() * 0.3:
@@ -480,9 +484,9 @@ class TraceDataset:
         else:
 
             data = np.load(defended_file, allow_pickle=True)
-            self.traces = data["traces"]
+            self.traces = data["traces"] if not self.use_cache else []
             self.labels = data["labels"]
-            assert len(self.traces) == len(self.ud_traces)
+            assert self.use_cache or len(self.traces) == len(self.ud_traces)
             self.overhead = self.read_overhead(dname)
         self.init_hash()
         self.update_hash(dname, os.stat(defended_file).st_mtime)
@@ -557,13 +561,14 @@ class TraceDataset:
         if os.path.exists(cache_path):
             return joblib.load(cache_path)
         else:
+            assert not self.use_cache
             data = attack.data_preprocess(*self[:])
             print(f"Saving processed data to {cache_path}")
             joblib.dump(data, cache_path)
             return data
 
 
-def get_ds(name="ours", scenario="closed-world"):
+def get_ds(name="ours", scenario="closed-world", use_cache=False):
     if name == "ours":
         ds = TraceDataset("ours", scenario=scenario)
     elif name == "df":
@@ -574,6 +579,7 @@ def get_ds(name="ours", scenario="closed-world"):
             ow_size=(40000, 1),
             cell_size=543,
             do_truncate=False,
+            use_cache=use_cache,
         )
     else:
         raise NotImplementedError

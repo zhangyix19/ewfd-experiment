@@ -33,7 +33,7 @@ def get_dataset(dataset, defenses):
     global ds_root
     ds_dict = {}
     for defense in defenses:
-        ds = get_ds(dataset, scenario="open-world")
+        ds = get_ds(dataset, scenario="open-world", use_cache=True)
         ds.load_defended(defense)
         ds_dict[defense] = ds
     return ds_dict
