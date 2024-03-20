@@ -13,6 +13,12 @@ def get_accuracy(log_file):
     ea = event_accumulator.EventAccumulator(log_file)
     ea.Reload()
     paras_obj = ea.scalars.Items("valid/accuracy")
+    print(
+        log_file,
+        ea.scalars.Items("valid/precision")[-1].value,
+        ea.scalars.Items("valid/recall")[-1].value,
+        ea.scalars.Items("valid/f1")[-1].value,
+    )
     return paras_obj[-1].value
 
 

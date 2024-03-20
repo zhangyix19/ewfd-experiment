@@ -11,5 +11,6 @@ model.pth
 # tmp
 tmp.*
 test.*
+*debug*
 *.pyc
 __pycache__/

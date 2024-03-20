@@ -158,11 +158,11 @@ class DNNAttack(Attack):
             if valid_result["loss"] < loss_min:
                 loss_min = valid_result["loss"]
                 patience = 0
+                if save_root:
+                    self.save_model(save_root)
             if patience >= earlystop_shreshold and epoch >= earlystop_min_epoch:
                 break
             patience += 1
-        if save_root:
-            self.save_model(save_root)
 
     def save_model(self, save_root, epoch=None):
         model_dir = join(save_root, self.name)

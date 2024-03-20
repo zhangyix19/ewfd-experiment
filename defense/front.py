@@ -1,12 +1,13 @@
 import numpy as np
 from ewfd_def.ewfd import DefensePlugin, TorOneDirection, simulate
-from ewfd_def.front import FrontPaddingUnit, FrontScheduleUnit
+from ewfd_def.front import FrontScheduleUnit
 
-from defense.base import Defense
+from defense.base import EWFDDefense
 
 
-class Front(Defense):
+class Front(EWFDDefense):
     def __init__(self, param={}, mode="moderate", name="front"):
+        super().__init__(name, mode)
         self.param = {
             "client_dummy_pkt_num": 3000,
             "server_dummy_pkt_num": 3000,
@@ -17,12 +18,8 @@ class Front(Defense):
             "server_min_dummy_pkt_num": 1,
         }
         self.param.update(param)
-        self.name = name
-        if mode != "moderate":
-            self.name += f"_{mode}"
-        self.mode = mode
 
-    def defend_real(self, trace):
+    def defend_ewfd(self, trace):
         client = TorOneDirection()
         server = TorOneDirection()
         client.add_plugin(
@@ -42,13 +39,7 @@ class Front(Defense):
             DefensePlugin.TYPE_SCHEDULE,
         )
 
-        trace = trace.copy()
-        trace[:, 0] = trace[:, 0] * 1000
-        trace = trace.astype(int)
-        defended_trace = simulate(client, server, trace, self.mode)
-        defended_trace = np.array(defended_trace).astype(float)
-        defended_trace[:, 0] = defended_trace[:, 0] / 1000
-        return defended_trace
+        return simulate(client, server, trace, self.mode)
 
     def getTimestamps(self, wnd, num):
         # timestamps = sorted(np.random.exponential(wnd/2.0, num))

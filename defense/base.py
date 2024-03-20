@@ -1,30 +1,35 @@
 import numpy as np
 from tqdm import tqdm
+import numpy as np
+from ewfd_def.ewfd import DefensePlugin, TorOneDirection, simulate, ScheduleUnit
 
 
-class Defense:
-    DUMMY_PKT = 888
-    DELAYED_PKT = 999
-    name = "base"
-    can_parallel = True
+class EWFDDefense:
+    def __init__(self, name, mode):
+        self.param = {}
+        self.name = name
+        if mode != "moderate":
+            self.name += f"_{mode}"
+        self.mode = mode
 
-    def init(self, param):
-        raise NotImplementedError
-
-    @staticmethod
-    def get_real(trace):
-        real = trace.copy()
-        real[:, 1] = np.sign(real[:, 1])
-        return real
-
-    def defend_real(self, trace):
-        # 处理单条trace
+    def defend_ewfd(self, trace):
         raise NotImplementedError
 
     def defend(self, trace):
-        # 处理单条带0的trace
-        length = trace.shape[0]
-        real_trace = self.get_real(trace)
-        # 相对时间
-        real_trace[:, 0] = real_trace[:, 0] - real_trace[0, 0]
-        return self.defend_real(real_trace)
+        trace = trace.copy()
+        trace[:, 0] = trace[:, 0] * 1000
+        trace = trace.astype(int)
+        defended_trace = self.defend_ewfd(trace)
+        defended_trace = np.array(defended_trace).astype(float)
+        defended_trace[:, 0] = defended_trace[:, 0] / 1000
+        return defended_trace
+
+
+class Empty(EWFDDefense):
+    def __init__(self):
+        super().__init__("empty", "moderate")
+
+    def defend_ewfd(self, trace):
+        client = TorOneDirection()
+        server = TorOneDirection()
+        return simulate(client, server, trace, self.mode)

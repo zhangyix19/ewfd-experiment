@@ -4,7 +4,7 @@ import sys
 rootpath = str(os.path.dirname(os.path.abspath(__file__)))
 sys.path.append(rootpath)
 
-from base import Defense
+from base import EWFDDefense, Empty
 from front import Front
 from tamaraw import Tamaraw
 from wfgan import Wfgan

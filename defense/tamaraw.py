@@ -1,20 +1,16 @@
-import numpy as np
 from ewfd_def.ewfd import DefensePlugin, TorOneDirection, simulate
-from ewfd_def.tamaraw import TamarawPaddingUnit, TamarawScheduleUnit
+from ewfd_def.tamaraw import TamarawScheduleUnit
 
-from defense.base import Defense
+from defense.base import EWFDDefense
 
 
-class Tamaraw(Defense):
-    def __init__(self, param={}, mode="moderate", name="tamaraw"):
+class Tamaraw(EWFDDefense):
+    def __init__(self, param={}, name="tamaraw", mode="moderate"):
+        super().__init__(name, mode)
         self.param = {"client_interval": 0.04, "server_interval": 0.012}
         self.param.update(param)
-        self.name = name
-        if mode != "moderate":
-            self.name += f"_{mode}"
-        self.mode = mode
 
-    def defend_real(self, trace):
+    def defend_ewfd(self, trace):
         client_interval = self.param["client_interval"]
         server_interval = self.param["server_interval"]
 
@@ -23,10 +19,4 @@ class Tamaraw(Defense):
         client.add_plugin(TamarawScheduleUnit(1, client_interval), DefensePlugin.TYPE_SCHEDULE)
         server.add_plugin(TamarawScheduleUnit(1, server_interval), DefensePlugin.TYPE_SCHEDULE)
 
-        trace = trace.copy()
-        trace[:, 0] = trace[:, 0] * 1000
-        trace = trace.astype(int)
-        defended_trace = simulate(client, server, trace, self.mode)
-        defended_trace = np.array(defended_trace).astype(float)
-        defended_trace[:, 0] = defended_trace[:, 0] / 1000
-        return defended_trace
+        return simulate(client, server, trace, self.mode)

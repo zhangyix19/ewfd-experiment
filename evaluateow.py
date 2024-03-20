@@ -17,10 +17,8 @@ train = args.train
 test = args.test
 dataset = args.dataset
 model_epoch = args.epoch
-model_dir = (
-    f"/data/users/zhangyixiang/wfp_zyx_new/data/dump/{note}/{attack_name}/train_{dataset}_d{train}"
-)
-assert os.path.exists(model_dir)
+model_dir = f"data/dump/{note}/{attack_name}/train_{dataset}_d{train}"
+assert os.path.exists(model_dir), model_dir
 
 print("Loading test dataset...")
 test_ds = get_ds(dataset, scenario="open-world")

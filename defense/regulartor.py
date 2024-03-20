@@ -1,12 +1,12 @@
-import numpy as np
 from ewfd_def.ewfd import DefensePlugin, TorOneDirection, simulate
 from ewfd_def.regulartor import RegularTorClientScheduleUnit, RegularTorServerScheduleUnit
 
-from defense.base import Defense
+from defense.base import EWFDDefense
 
 
-class RegularTor(Defense):
-    def __init__(self, param={}, mode="moderate", name="regulartor"):
+class RegularTor(EWFDDefense):
+    def __init__(self, param={}, name="regulartor", mode="moderate"):
+        super().__init__(name, mode)
         self.param = {
             "orig_rate": 277,
             "depreciation_rate": 0.94,
@@ -15,12 +15,8 @@ class RegularTor(Defense):
             "upload_ratio": 3.95,
             "delay_cap": 1.77,
         }
-        self.name = name
-        if mode != "moderate":
-            self.name += f"_{mode}"
-        self.mode = mode
 
-    def defend_real(self, trace):
+    def defend_ewfd(self, trace):
         upload_ratio = self.param["upload_ratio"]
         delay_cap = self.param["delay_cap"]
         orig_rate = self.param["orig_rate"]
@@ -37,10 +33,4 @@ class RegularTor(Defense):
             DefensePlugin.TYPE_SCHEDULE,
         )
 
-        trace = trace.copy()
-        trace[:, 0] = trace[:, 0] * 1000
-        trace = trace.astype(int)
-        defended_trace = simulate(client, server, trace, self.mode)
-        defended_trace = np.array(defended_trace).astype(float)
-        defended_trace[:, 0] = defended_trace[:, 0] / 1000
-        return defended_trace
+        return simulate(client, server, trace, self.mode)

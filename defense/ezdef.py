@@ -1,7 +1,7 @@
 import numpy as np
 from ewfd_def.ewfd import DefensePlugin, TorOneDirection, simulate
 
-from defense.base import Defense
+from defense.base import EWFDDefense
 from ewfd_def.ezdef import (
     EzpaddingScheduleUnit,
     EzfixedScheduleUnit,
@@ -10,8 +10,9 @@ from ewfd_def.ezdef import (
 )
 
 
-class Ezpadding(Defense):
-    def __init__(self, param={}, mode="moderate", name="ezpadding"):
+class Ezpadding(EWFDDefense):
+    def __init__(self, param={}, name="ezpadding", mode="moderate"):
+        super().__init__(name, mode)
         self.param = {
             "client_burst_num": 800,
             "server_burst_num": 1600,
@@ -21,12 +22,8 @@ class Ezpadding(Defense):
             "sigma": 1,
         }
         self.param.update(param)
-        self.name = name
-        if mode != "moderate":
-            self.name += f"_{mode}"
-        self.mode = mode
 
-    def defend_real(self, trace):
+    def defend_ewfd(self, trace):
         client = TorOneDirection()
         server = TorOneDirection()
         client.add_plugin(
@@ -48,18 +45,12 @@ class Ezpadding(Defense):
             DefensePlugin.TYPE_SCHEDULE,
         )
 
-        trace = trace.copy()
-        trace[:, 0] = trace[:, 0] * 1000
-        trace = trace.astype(int)
-        defended_trace = simulate(client, server, trace, self.mode)
-        defended_trace = np.array(defended_trace).astype(float)
-        defended_trace[:, 0] = defended_trace[:, 0] / 1000
-        return defended_trace
+        return simulate(client, server, trace, self.mode)
 
 
-class Ezfixed(Defense):
-    def __init__(self, param={}, mode="moderate", name="ezfixed"):
-        # base_rate=10, burst_gap=0.02, wnd=0.5, flush_rate=1.5
+class Ezfixed(EWFDDefense):
+    def __init__(self, param={}, name="ezfixed", mode="moderate"):
+        super().__init__(name, mode)
         self.param = {
             "client_base_rate": 5,
             "server_base_rate": 10,
@@ -68,12 +59,8 @@ class Ezfixed(Defense):
             "flush_rate": 1.5,
         }
         self.param.update(param)
-        self.name = name
-        if mode != "moderate":
-            self.name += f"_{mode}"
-        self.mode = mode
 
-    def defend_real(self, trace):
+    def defend_ewfd(self, trace):
         client = TorOneDirection()
         server = TorOneDirection()
         client.add_plugin(
@@ -95,25 +82,16 @@ class Ezfixed(Defense):
             DefensePlugin.TYPE_SCHEDULE,
         )
 
-        trace = trace.copy()
-        trace[:, 0] = trace[:, 0] * 1000
-        trace = trace.astype(int)
-        defended_trace = simulate(client, server, trace, self.mode)
-        defended_trace = np.array(defended_trace).astype(float)
-        defended_trace[:, 0] = defended_trace[:, 0] / 1000
-        return defended_trace
+        return simulate(client, server, trace, self.mode)
 
 
-class Ezfixedrate(Defense):
-    def __init__(self, param={}, mode="moderate", name="ezfixedrate"):
+class Ezfixedrate(EWFDDefense):
+    def __init__(self, param={}, name="ezfixedrate", mode="moderate"):
+        super().__init__(name, mode)
         self.param = {"burst_size": 30}
         self.param.update(param)
-        self.name = name
-        if mode != "moderate":
-            self.name += f"_{mode}"
-        self.mode = mode
 
-    def defend_real(self, trace):
+    def defend_ewfd(self, trace):
         client = TorOneDirection()
         server = TorOneDirection()
         client.add_plugin(
@@ -140,18 +118,12 @@ class Ezfixedrate(Defense):
             ),
             DefensePlugin.TYPE_SCHEDULE,
         )
-        trace = trace.copy()
-        trace[:, 0] = trace[:, 0] * 1000
-        trace = trace.astype(int)
-        defended_trace = simulate(client, server, trace, self.mode)
-        defended_trace = np.array(defended_trace).astype(float)
-        defended_trace[:, 0] = defended_trace[:, 0] / 1000
-        return defended_trace
+        return simulate(client, server, trace, self.mode)
 
 
-class Ezlinear(Defense):
-    def __init__(self, param={}, mode="moderate", name="ezlinear"):
-        # init_rate=40, increase_gradient=200, wnd=0.5, slow_down_factor=0.5, budget_rate=0.5
+class Ezlinear(EWFDDefense):
+    def __init__(self, param={}, name="ezlinear", mode="moderate"):
+        super().__init__(name, mode)
         self.param = {
             "init_rate": 40,
             "client_gradient": 80,
@@ -161,12 +133,8 @@ class Ezlinear(Defense):
             "budget_rate": 0.5,
         }
         self.param.update(param)
-        self.name = name
-        if mode != "moderate":
-            self.name += f"_{mode}"
-        self.mode = mode
 
-    def defend_real(self, trace):
+    def defend_ewfd(self, trace):
         client = TorOneDirection()
         server = TorOneDirection()
         client.add_plugin(
@@ -190,10 +158,4 @@ class Ezlinear(Defense):
             DefensePlugin.TYPE_SCHEDULE,
         )
 
-        trace = trace.copy()
-        trace[:, 0] = trace[:, 0] * 1000
-        trace = trace.astype(int)
-        defended_trace = simulate(client, server, trace, self.mode)
-        defended_trace = np.array(defended_trace).astype(float)
-        defended_trace[:, 0] = defended_trace[:, 0] / 1000
-        return defended_trace
+        return simulate(client, server, trace, self.mode)

@@ -1,12 +1,12 @@
-import numpy as np
 from ewfd_def.ewfd import DefensePlugin, TorOneDirection, simulate
-from ewfd_def.tamaraw import TamarawPaddingUnit, TamarawScheduleUnit
-from ewfd_def.front import FrontPaddingUnit, FrontScheduleUnit
-from defense.base import Defense
+from ewfd_def.tamaraw import TamarawScheduleUnit
+from ewfd_def.front import FrontScheduleUnit
+from defense.base import EWFDDefense
 
 
-class FronTamaraw(Defense):
-    def __init__(self, param={}, mode="pessimistic", name="frontamaraw"):
+class FronTamaraw(EWFDDefense):
+    def __init__(self, param={}, name="frontamaraw", mode="pessimistic"):
+        super().__init__(name, mode)
         self.param = {
             "server_interval": 0.012,
             "client_dummy_pkt_num": 3000,
@@ -16,12 +16,8 @@ class FronTamaraw(Defense):
             "client_min_dummy_pkt_num": 1,
         }
         self.param.update(param)
-        self.name = name
-        if mode != "moderate":
-            self.name += f"_{mode}"
-        self.mode = mode
 
-    def defend_real(self, trace):
+    def defend_ewfd(self, trace):
         client = TorOneDirection()
         server = TorOneDirection()
         client.add_plugin(
@@ -37,10 +33,4 @@ class FronTamaraw(Defense):
             DefensePlugin.TYPE_SCHEDULE,
         )
 
-        trace = trace.copy()
-        trace[:, 0] = trace[:, 0] * 1000
-        trace = trace.astype(int)
-        defended_trace = simulate(client, server, trace, self.mode)
-        defended_trace = np.array(defended_trace).astype(float)
-        defended_trace[:, 0] = defended_trace[:, 0] / 1000
-        return defended_trace
+        return simulate(client, server, trace, self.mode)

@@ -20,7 +20,8 @@ import psutil
 from nptyping import *
 from tqdm import tqdm
 
-from defense import Defense
+
+np.set_printoptions(threshold=np.inf, suppress=True)
 
 
 def pkt2cell_single_direction(trace_3, cell_size):
@@ -258,7 +259,6 @@ class TraceDataset:
                     self.cw_label_map[self.labels[idx]] for idx in map_item
                 ]
             else:
-
                 map_item = self.cw_index[item]
                 return self.traces[map_item], self.cw_label_map[self.labels[map_item]]
         elif self.scenario == "open-world":
@@ -403,6 +403,8 @@ class TraceDataset:
         # self.traces = [pkt2cell(trace) for trace in self.traces]
         args = [(trace, self.cell_size) for trace in self.traces]
         self.traces = run_parallel("to_cell_level", pkt2cell, args)
+        for trace in self.traces:
+            trace[:, 0] = trace[:, 0] - trace[0, 0]
         os.makedirs(self.cell_level_dir, exist_ok=True)
         print(f"Saving cell level file to {self.cell_level_file}")
         np.savez_compressed(
@@ -568,9 +570,9 @@ class TraceDataset:
             return data
 
 
-def get_ds(name="ours", scenario="closed-world", use_cache=False):
-    if name == "ours":
-        ds = TraceDataset("ours", scenario=scenario)
+def get_ds(name="tor", scenario="closed-world", use_cache=False):
+    if name == "tor":
+        ds = TraceDataset("tor", scenario=scenario)
     elif name == "df":
         ds = TraceDataset(
             "df",
