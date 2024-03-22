@@ -13,6 +13,7 @@ class DatasetWithDefenses(argparse.Action):
 
 def trainparser():
     parser = argparse.ArgumentParser(description="WFP Experiment")
+    parser.add_argument("-d", "--dataset", default="ours", type=str, help="name of dataset")
     parser.add_argument("-g", "--gpu", default="0", type=str, help="Device id")
     parser.add_argument("-l", "--length", default=10000, type=int, help="length of features")
     parser.add_argument("-e", "--epoch", default=0, type=int, help="epoch of training")
@@ -24,11 +25,11 @@ def trainparser():
         help="defense method for training",
     )
     parser.add_argument("--attack", default="RF", type=str, help="attack method")
-    parser.add_argument("-d", "--dataset", default="ours", type=str, help="name of dataset")
     parser.add_argument("-n", "--note", default="test", type=str, help="note of experiment")
     parser.add_argument(
         "--test", default=[], nargs="*", type=str, help="defense method for testing"
     )
+    parser.add_argument("-o", "--openworld", action="store_true", help="scenario: openworld")
     parser.add_argument("--batch_size", default=0, type=int, help="batch size")
     parser.add_argument("--cw_size", default=[100, 100], type=int, nargs="+", help="batch size")
     parser.add_argument("--dump", action="store_true", help="dump dataset")

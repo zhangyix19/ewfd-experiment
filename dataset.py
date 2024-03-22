@@ -261,40 +261,6 @@ class TraceDataset:
             else:
                 map_item = self.cw_index[item]
                 return self.traces[map_item], self.cw_label_map[self.labels[map_item]]
-        elif self.scenario == "open-world":
-            cw_len = len(self.cw_index)
-            ow_len = len(self.ow_index)
-            cw_label, ow_label = 0, 1
-            if isinstance(item, slice):
-                slice_item = item
-                traces = []
-                labels = []
-                for idx in range(cw_len + ow_len)[slice_item]:
-                    if idx < cw_len:
-                        traces.append(self.traces[self.cw_index[idx]])
-                        labels.append(cw_label)
-                    else:
-                        traces.append(self.traces[self.ow_index[idx - cw_len]])
-                        labels.append(ow_label)
-                return traces, labels
-            elif isinstance(item, (list, np.ndarray)):
-                idx_array = item
-                traces = []
-                labels = []
-                for idx in idx_array:
-                    if idx < cw_len:
-                        traces.append(self.traces[self.cw_index[idx]])
-                        labels.append(cw_label)
-                    else:
-                        traces.append(self.traces[self.ow_index[idx - cw_len]])
-                        labels.append(ow_label)
-                return traces, labels
-            else:
-
-                if item < cw_len:
-                    return self.traces[self.cw_index[item]], cw_label
-                else:
-                    return self.traces[self.ow_index[item - cw_len]], ow_label
         else:  # open world
             cw_len = len(self.cw_index)
             ow_len = len(self.ow_index)
@@ -325,7 +291,6 @@ class TraceDataset:
                         labels.append(ow_label)
                 return traces, labels
             else:
-
                 if item < cw_len:
                     return (
                         self.traces[self.cw_index[item]],
@@ -337,8 +302,6 @@ class TraceDataset:
     def num_classes(self):
         if self.scenario == "closed-world":
             return self.cw_size[0]
-        elif self.scenario == "open-world":
-            return 2
         else:
             return self.cw_size[0] + 1
 

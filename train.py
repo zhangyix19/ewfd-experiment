@@ -17,10 +17,12 @@ random_seed = 11
 log_root = "./run"
 ds_root = "./data"
 dump_root = "./data/dump"
-cache_root = "./data/cache"
 time_str = time.strftime("%Y%m%d", time.localtime())
 taskname = parse_taskname(args)
+scenario = "open-world" if args.openworld else "closed-world"
 note = args.note if args.nodate else time_str + args.note
+if scenario == "open-world":
+    note += "ow"
 log_dir = join(log_root, note, args.attack, taskname)
 dump_dir = join(dump_root, note, args.attack, taskname)
 
@@ -30,7 +32,7 @@ def get_dataset(dataset, defenses):
     global ds_root
     ds_dict = {}
     for defense in defenses:
-        ds = get_ds(dataset, use_cache=True)
+        ds = get_ds(dataset, scenario=scenario, use_cache=True)
         ds.load_defended(defense)
         ds_dict[defense] = ds
     return ds_dict
