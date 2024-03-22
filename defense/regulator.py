@@ -1,11 +1,11 @@
 from ewfd_def.ewfd import DefensePlugin, TorOneDirection, simulate
-from ewfd_def.regulartor import RegularTorClientScheduleUnit, RegularTorServerScheduleUnit
+from defense.ewfd_def.regulator import RegulaTorClientScheduleUnit, RegulaTorServerScheduleUnit
 
 from defense.base import EWFDDefense
 
 
-class RegularTor(EWFDDefense):
-    def __init__(self, param={}, name="regulartor", mode="moderate"):
+class RegulaTor(EWFDDefense):
+    def __init__(self, param={}, name="regulator", mode="moderate"):
         super().__init__(name, mode)
         self.param = {
             "orig_rate": 277,
@@ -26,10 +26,10 @@ class RegularTor(EWFDDefense):
         client = TorOneDirection()
         server = TorOneDirection()
         client.add_plugin(
-            RegularTorClientScheduleUnit(upload_ratio, delay_cap), DefensePlugin.TYPE_SCHEDULE
+            RegulaTorClientScheduleUnit(upload_ratio, delay_cap), DefensePlugin.TYPE_SCHEDULE
         )
         server.add_plugin(
-            RegularTorServerScheduleUnit(orig_rate, depreciation_rate, burst_threshold),
+            RegulaTorServerScheduleUnit(orig_rate, depreciation_rate, burst_threshold),
             DefensePlugin.TYPE_SCHEDULE,
         )
 

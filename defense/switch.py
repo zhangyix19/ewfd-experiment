@@ -9,7 +9,7 @@ class Switch(EWFDDefense):
         super().__init__(name, mode)
         self.param = {
             "defenses": {
-                "random": {"tamaraw": 1, "regulartor": 1, "front": 1},
+                "random": {"tamaraw": 1, "regulator": 1, "front": 1},
                 "paired": {"wfgan": 1},
             },
             "params": {},

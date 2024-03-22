@@ -18,7 +18,7 @@ class EWFDDefense:
     def defend(self, trace):
         trace = trace.copy()
         trace[:, 0] = trace[:, 0] * 1000
-        trace = trace.astype(int)
+        # trace = trace.astype(int)
         defended_trace = self.defend_ewfd(trace)
         defended_trace = np.array(defended_trace).astype(float)
         defended_trace[:, 0] = defended_trace[:, 0] / 1000

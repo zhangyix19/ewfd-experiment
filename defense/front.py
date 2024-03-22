@@ -6,7 +6,7 @@ from defense.base import EWFDDefense
 
 
 class Front(EWFDDefense):
-    def __init__(self, param={}, mode="moderate", name="front"):
+    def __init__(self, param={}, name="front", mode="moderate"):
         super().__init__(name, mode)
         self.param = {
             "client_dummy_pkt_num": 3000,

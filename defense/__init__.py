@@ -8,7 +8,7 @@ from base import EWFDDefense, Empty
 from front import Front
 from tamaraw import Tamaraw
 from wfgan import Wfgan
-from regulartor import RegularTor
+from regulator import RegulaTor
 from frontamaraw import FronTamaraw
 from adptamaraw import AdpTamaraw
 from switch import Switch

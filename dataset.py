@@ -533,10 +533,8 @@ class TraceDataset:
             return data
 
 
-def get_ds(name="tor", scenario="closed-world", use_cache=False):
-    if name == "tor":
-        ds = TraceDataset("tor", scenario=scenario)
-    elif name == "df":
+def get_ds(name="ours", scenario="closed-world", use_cache=False):
+    if name == "df":
         ds = TraceDataset(
             "df",
             scenario=scenario,
@@ -547,6 +545,6 @@ def get_ds(name="tor", scenario="closed-world", use_cache=False):
             use_cache=use_cache,
         )
     else:
-        raise NotImplementedError
+        ds = TraceDataset(name, scenario=scenario)
     ds.load_cell_level()
     return ds
