@@ -1,7 +1,7 @@
 from ewfd_def.ewfd import DefensePlugin, TorOneDirection, simulate
-from defense.ewfd_def.regulator import RegulaTorClientScheduleUnit, RegulaTorServerScheduleUnit
+from ewfd_def.regulator import RegulaTorClientScheduleUnit, RegulaTorServerScheduleUnit
 
-from defense.base import EWFDDefense
+from base import EWFDDefense
 
 
 class RegulaTor(EWFDDefense):

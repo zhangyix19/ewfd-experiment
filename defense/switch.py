@@ -1,7 +1,7 @@
 from ewfd_def.ewfd import DefensePlugin, TorOneDirection, simulate
 from ewfd_def.switch import SwitchClientScheduleUnit, SwitchServerScheduleUnit
 
-from defense.base import EWFDDefense
+from base import EWFDDefense
 
 
 class Switch(EWFDDefense):

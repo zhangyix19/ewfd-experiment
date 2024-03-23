@@ -1,7 +1,7 @@
 import numpy as np
 from ewfd_def.ewfd import DefensePlugin, TorOneDirection, simulate
 
-from defense.base import EWFDDefense
+from base import EWFDDefense
 from ewfd_def.ezdef import (
     EzpaddingScheduleUnit,
     EzfixedScheduleUnit,

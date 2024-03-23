@@ -14,7 +14,7 @@ attack_name = args.attack
 note = args.note
 assert note.endswith("ow")
 train = args.train
-test = args.test
+test = args.test or train
 dataset = args.dataset
 model_epoch = args.epoch
 model_dir = f"data/dump/{note}/{attack_name}/train_{dataset}_d{train}"
@@ -56,11 +56,15 @@ os.makedirs(archive_dump, exist_ok=True)
 with open(os.path.join(archive_dump, f"{test}.log"), "w") as f:
     f.write(str(metrics_dict))
 pickle.dump(
-    {"y_true": y_true, "y_pred": y_pred}, open(os.path.join(archive_dump, f"{test}.pkl"), "wb")
+    {"y_true": y_true, "y_pred": y_pred, "unmonitored_label": test_ds.unmonitored_label()},
+    open(os.path.join(archive_dump, f"{test}.pkl"), "wb"),
 )
 
 run_dump = os.path.join("run", "test", note, dataset, attack_name, train)
 os.makedirs(run_dump, exist_ok=True)
 with open(os.path.join(run_dump, f"{test}.log"), "w") as f:
     f.write(str(metrics_dict))
-pickle.dump({"y_true": y_true, "y_pred": y_pred}, open(os.path.join(run_dump, f"{test}.pkl"), "wb"))
+pickle.dump(
+    {"y_true": y_true, "y_pred": y_pred, "unmonitored_label": test_ds.unmonitored_label()},
+    open(os.path.join(run_dump, f"{test}.pkl"), "wb"),
+)

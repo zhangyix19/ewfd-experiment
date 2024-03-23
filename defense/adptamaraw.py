@@ -2,7 +2,7 @@ import numpy as np
 from ewfd_def.ewfd import DefensePlugin, TorOneDirection, simulate
 from ewfd_def.adptamaraw import AdpTamarawScheduleUnit
 
-from defense.base import EWFDDefense
+from base import EWFDDefense
 
 
 class AdpTamaraw(EWFDDefense):

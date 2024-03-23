@@ -311,8 +311,8 @@ class TraceDataset:
     def monitored_labels(self):
         return list(self.cw_label_map.values())
 
-    def unmonitored_labels(self):
-        return [self.cw_size[0] + 1]
+    def unmonitored_label(self):
+        return self.cw_size[0]
 
     def load_extracted(self):
         self.prepared = False

@@ -1,7 +1,7 @@
 from ewfd_def.ewfd import DefensePlugin, TorOneDirection, simulate
 from ewfd_def.tamaraw import TamarawScheduleUnit
 
-from defense.base import EWFDDefense
+from base import EWFDDefense
 
 
 class Tamaraw(EWFDDefense):

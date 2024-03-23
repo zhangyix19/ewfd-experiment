@@ -3,7 +3,7 @@ import ewfd_def.spring as spring
 import ewfd_def.interspace as interspace
 import ewfd_def.wtfpad as wtfpad
 
-from defense.base import EWFDDefense
+from base import EWFDDefense
 
 
 class Spring(EWFDDefense):
