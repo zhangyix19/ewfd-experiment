@@ -15,17 +15,18 @@ cache_root = "./data/cache"
 attack_name = args.attack
 note = args.note
 train = args.train
-test = args.test
+test = args.test or train
 dataset = args.dataset
 model_epoch = args.epoch
 model_dir = f"data/dump/{note}/{attack_name}/train_{dataset}_d{train}"
 assert os.path.exists(model_dir), model_dir
 
 print("Loading test dataset...")
-test_ds = get_ds(dataset, use_cache=True)
+test_ds = get_ds(dataset)
 test_ds.load_defended(test)
-num_calsses = test_ds.num_classes()
-attack: wfpattack.DNNAttack = wfpattack.get_attack(attack_name)(args.length, num_calsses, args.gpu)
+num_classes = test_ds.num_classes()
+print(num_classes)
+attack: wfpattack.DNNAttack = wfpattack.get_attack(attack_name)(args.length, num_classes, args.gpu)
 
 
 ds_len = len(test_ds)
@@ -61,8 +62,7 @@ with open(os.path.join(archive_dump, f"{test}.log"), "w") as f:
 pickle.dump(
     {"y_true": y_true, "y_pred": y_pred}, open(os.path.join(archive_dump, f"{test}.pkl"), "wb")
 )
-
-run_dump = os.path.join("run", "test", note, dataset, train)
+run_dump = os.path.join("run", "test", note, dataset, attack_name, train)
 os.makedirs(run_dump, exist_ok=True)
 with open(os.path.join(run_dump, f"{test}.log"), "w") as f:
     f.write(str(metrics_dict))

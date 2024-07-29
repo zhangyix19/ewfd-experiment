@@ -15,6 +15,7 @@ class RegulaTor(EWFDDefense):
             "upload_ratio": 3.95,
             "delay_cap": 1.77,
         }
+        self.param.update(param)
 
     def defend_ewfd(self, trace):
         upload_ratio = self.param["upload_ratio"]

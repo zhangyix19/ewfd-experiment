@@ -1,5 +1,5 @@
 from ewfd_def.ewfd import DefensePlugin, TorOneDirection, simulate
-from ewfd_def.tamaraw import TamarawScheduleUnit
+from ewfd_def.tamaraw import TorOneDirectionFixed
 
 from base import EWFDDefense
 
@@ -11,12 +11,7 @@ class Tamaraw(EWFDDefense):
         self.param.update(param)
 
     def defend_ewfd(self, trace):
-        client_interval = self.param["client_interval"]
-        server_interval = self.param["server_interval"]
-
-        client = TorOneDirection()
-        server = TorOneDirection()
-        client.add_plugin(TamarawScheduleUnit(1, client_interval), DefensePlugin.TYPE_SCHEDULE)
-        server.add_plugin(TamarawScheduleUnit(1, server_interval), DefensePlugin.TYPE_SCHEDULE)
+        client = TorOneDirectionFixed(role="client", pace=1 / self.param["client_interval"])
+        server = TorOneDirectionFixed(role="server", pace=1 / self.param["server_interval"])
 
         return simulate(client, server, trace, self.mode)

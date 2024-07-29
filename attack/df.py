@@ -150,7 +150,7 @@ class DF(DNNAttack):
         20000: 76,
     }
 
-    def __init__(self, trace_length, num_classes, gpu):
+    def __init__(self, trace_length, num_classes, gpu, n_jobs=10):
         super().__init__(trace_length, num_classes, gpu)
         self.model = None
         self.num_epochs = 1000
@@ -174,9 +174,11 @@ class DF(DNNAttack):
     def data_preprocess(self, traces, labels):
         traces = [np.array(trace[: self.trace_length]) for trace in traces]
         traces = [
-            np.pad(trace, ((0, self.trace_length - trace.shape[0]), (0, 0)), "constant")
-            if trace.shape[0] < self.trace_length
-            else trace
+            (
+                np.pad(trace, ((0, self.trace_length - trace.shape[0]), (0, 0)), "constant")
+                if trace.shape[0] < self.trace_length
+                else trace
+            )
             for trace in traces
         ]
         traces = [np.sign(trace[:, 1]).reshape(1, -1) for trace in traces]

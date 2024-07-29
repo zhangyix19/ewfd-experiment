@@ -30,7 +30,7 @@ def trainparser():
         "--test", default=[], nargs="*", type=str, help="defense method for testing"
     )
     parser.add_argument("-o", "--openworld", action="store_true", help="scenario: openworld")
-    parser.add_argument("--batch_size", default=0, type=int, help="batch size")
+    parser.add_argument("-b", "--batch_size", default=0, type=int, help="batch size")
     parser.add_argument("--cw_size", default=[100, 100], type=int, nargs="+", help="batch size")
     parser.add_argument("--dump", action="store_true", help="dump dataset")
     parser.add_argument("--nodate", action="store_true", help="no date in note")
@@ -48,7 +48,7 @@ def evaluate_parser():
     parser = argparse.ArgumentParser(description="WFP Experiment Test")
     parser.add_argument("-g", "--gpu", default="0", type=str, help="Device id")
     parser.add_argument("-l", "--length", default=10000, type=int, help="length of features")
-    parser.add_argument("--note", default=None, type=str, help="train note")
+    parser.add_argument("-n", "--note", default=None, type=str, help="train note")
     parser.add_argument(
         "-d", "--dataset", default="ours", type=str, help="dataset name for testing"
     )

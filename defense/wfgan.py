@@ -7,7 +7,7 @@ from base import EWFDDefense
 class Wfgan(EWFDDefense):
     def __init__(self, param={}, name="wfgan", mode="moderate"):
         super().__init__(name, mode)
-        self.param = {"tol": 0.6}
+        self.param = {"tol": 0.8}
         self.param.update(param)
 
     def defend_ewfd(self, trace):

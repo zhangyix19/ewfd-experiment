@@ -190,9 +190,13 @@ def extract_pcap_client(pcap_file: str, client_in_ip: str = None):
     for web_ip, sequence in web_ip_sequence_dict.items():
         select_ip = web_ip if len(sequence) > len(web_ip_sequence_dict[select_ip]) else select_ip
     trace = []
+    seq_seen = set()
     for ts, ip_src, ip_dst, seq, record_length in web_ip_sequence_dict[select_ip]:
         direction = CLIENT_TO_SERVER if ip_src == client_in_ip else SERVER_TO_CLIENT
+        if seq in seq_seen:
+            continue
         trace.append([ts, direction, record_length])
+        seq_seen.add(seq)
     return np.array(trace)
 
 
@@ -211,7 +215,7 @@ print("Begin extract features")
 # use multi-process to turn pcap to numpy
 
 # multiprocessing to extract features
-with multiprocessing.Pool(30) as pool:
+with multiprocessing.Pool(100) as pool:
     # results:list(tuple()) = pool.map(run_task_func, task_list)
     print("Begin multiprocessing to extract features")
     results: list(tuple()) = list(tqdm(pool.imap(run_task_func, task_list), total=len(task_list)))

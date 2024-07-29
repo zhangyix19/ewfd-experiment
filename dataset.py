@@ -7,7 +7,7 @@ defended [npz file]: contains packet traces(NDArray[Shape["* traces, * cells, [t
 """
 
 import hashlib
-import multiprocessing as mp
+import torch.multiprocessing as mp
 import os
 import time
 from collections import Counter
@@ -24,34 +24,45 @@ from tqdm import tqdm
 np.set_printoptions(threshold=np.inf, suppress=True)
 
 
-def pkt2cell_single_direction(trace_3, cell_size):
+def pkt2cell_single_direction(trace_3, CELL_SIZE_WRAPPED_BY_TLS):
+    CELL_SIZE = 514
+    TLS_HEADER_LEN = CELL_SIZE_WRAPPED_BY_TLS - CELL_SIZE
     trace_1 = []
     buffer_size = 0
+    new_tls_record = True
     for ts, __direction, pkt_size in trace_3:
-        if pkt_size % cell_size == 0:
+        if (pkt_size - TLS_HEADER_LEN) % CELL_SIZE == 0:
             # exactly n cells
             # clear buffer if not empty, there should be a cell but not, so some bugs
             # however, because current packet is exactly n cells, so we let it go
             buffer_size = pkt_size
+            new_tls_record = True
         else:
             # not exactly n cells, probably 1448, 1448, 1348 like
             # we assume the cell's ts is its first byte's ts
             buffer_size += pkt_size
         # we assume the cell's ts is its first byte's ts,
         # so when we see first byte, we push_back ts
-        while buffer_size > 0:
+        while buffer_size > CELL_SIZE / 2:
+            if new_tls_record:
+                buffer_size -= TLS_HEADER_LEN
+                new_tls_record = False
             trace_1.append([ts])
-            buffer_size -= cell_size
+            buffer_size -= CELL_SIZE
+
+        if buffer_size == 0:
+            new_tls_record = True
         # negative buffer_size means we preallocate a cell
+
     return np.array(trace_1)
 
 
-def pkt2cell(trace_3, cell_size):
+def pkt2cell(trace_3, CELL_SIZE_WRAPPED_BY_TLS):
     c_trace3 = trace_3[np.where(trace_3[:, 1] > 0)]
     s_trace3 = trace_3[np.where(trace_3[:, 1] < 0)]
 
-    c_trace1 = pkt2cell_single_direction(c_trace3, cell_size)
-    s_trace1 = pkt2cell_single_direction(s_trace3, cell_size)
+    c_trace1 = pkt2cell_single_direction(c_trace3, CELL_SIZE_WRAPPED_BY_TLS)
+    s_trace1 = pkt2cell_single_direction(s_trace3, CELL_SIZE_WRAPPED_BY_TLS)
 
     if len(c_trace1) == 0:
         c_trace2 = np.zeros((0, 2))
@@ -105,9 +116,10 @@ def func_wrapper(job):
     return func(*args)
 
 
-def run_parallel(task_name, func, argss: List[Tuple]):
+def run_parallel(task_name, func, argss: List[Tuple], proc=90):
     jobs = [(func, args) for args in argss]
-    with mp.Pool(int(psutil.cpu_count() * 0.9)) as p:
+    # with mp.Pool(int(psutil.cpu_count() * 0.1)) as p:
+    with mp.Pool(proc) as p:
         imap_iter = p.imap(func_wrapper, jobs)
         results = [x for x in tqdm(imap_iter, total=len(jobs), desc=task_name)]
     return results
@@ -139,7 +151,7 @@ class TraceDataset:
         scenario="closed-world",
         cw_size=(100, 100),
         ow_size=(10000, 1),
-        cell_size=536,
+        cell_size_wrapped_by_tls=536,
         do_truncate=True,
         use_cache=False,
     ):
@@ -151,7 +163,7 @@ class TraceDataset:
         self.cw_size = cw_size
         self.ow_size = ow_size
         self.do_truncate = do_truncate
-        self.cell_size = cell_size
+        self.cell_size_wrapped_by_tls = cell_size_wrapped_by_tls
         self.status = "unload"
         self.use_cache = use_cache
         self.init_hash()
@@ -179,7 +191,7 @@ class TraceDataset:
 
     def init_hash(self):
         self.status = "unload"
-        self.hash = my_hash(self.name, self.cell_size)
+        self.hash = my_hash(self.name, self.cell_size_wrapped_by_tls)
 
     def update_hash(self, status, *args):
         self.status = status
@@ -364,7 +376,7 @@ class TraceDataset:
     def to_cell_level(self):
         self.load_truncated()
         # self.traces = [pkt2cell(trace) for trace in self.traces]
-        args = [(trace, self.cell_size) for trace in self.traces]
+        args = [(trace, self.cell_size_wrapped_by_tls) for trace in self.traces]
         self.traces = run_parallel("to_cell_level", pkt2cell, args)
         for trace in self.traces:
             trace[:, 0] = trace[:, 0] - trace[0, 0]
@@ -413,7 +425,7 @@ class TraceDataset:
             defend_func = defense.defend
             if parallel:
                 args = [(trace,) for trace in self.ud_traces]
-                self.traces = run_parallel("defend-" + defense.name, defend_func, args)
+                self.traces = run_parallel("defend-" + defense.name, defend_func, args, parallel)
             else:
                 self.traces = [
                     defend_func(trace)
@@ -436,7 +448,7 @@ class TraceDataset:
             overhead=self.overhead,
         )
 
-    def load_defended(self, defense, parallel=True):
+    def load_defended(self, defense, parallel=100):
         if self.ud_traces is None:
             self.load_cell_level()
             self.ud_traces = self.traces
@@ -444,7 +456,7 @@ class TraceDataset:
         defended_file = self.get_defend_file(dname)
         print(f"Try to load {dname} defended data from {defended_file} if existed")
         if not exists(defended_file):
-            assert not isinstance(defense, str)
+            assert not isinstance(defense, str), defended_file
             self.defend(defense, parallel)
         else:
 
@@ -534,17 +546,56 @@ class TraceDataset:
 
 
 def get_ds(name="ours", scenario="closed-world", use_cache=False):
-    if name == "df":
+    if name == "ssdf":
         ds = TraceDataset(
-            "df",
+            name,
             scenario=scenario,
-            cw_size=(95, 1000),
-            ow_size=(40000, 1),
-            cell_size=543,
+            cw_size=(95, 5),
+            cell_size_wrapped_by_tls=543,
+            use_cache=use_cache,
+        )
+    elif name == "smalldf":
+        ds = TraceDataset(
+            name,
+            scenario=scenario,
+            cw_size=(95, 100),
+            cell_size_wrapped_by_tls=543,
+            use_cache=use_cache,
+        )
+    elif name == "sdfow":
+        ds = TraceDataset(
+            name,
+            scenario=scenario,
+            cw_size=(95, 100),
+            ow_size=(20000, 1),
+            cell_size_wrapped_by_tls=543,
             do_truncate=False,
             use_cache=use_cache,
         )
+    elif "df" in name:
+        ds = TraceDataset(
+            name,
+            scenario=scenario,
+            cw_size=(95, 1000),
+            ow_size=(40000, 1),
+            cell_size_wrapped_by_tls=543,
+            do_truncate=False,
+            use_cache=use_cache,
+        )
+    elif name == "sours":
+        ds = TraceDataset(
+            name,
+            scenario=scenario,
+            cell_size_wrapped_by_tls=536,
+            use_cache=use_cache,
+            cw_size=(100, 5),
+        )
     else:
-        ds = TraceDataset(name, scenario=scenario)
+        ds = TraceDataset(
+            name,
+            scenario=scenario,
+            cell_size_wrapped_by_tls=536,
+            use_cache=use_cache,
+        )
     ds.load_cell_level()
     return ds

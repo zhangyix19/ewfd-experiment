@@ -1,2 +1,2 @@
 #!/bin/bash
-tensorboard --logdir=run/$1 --port 12727
+tensorboard --logdir=run/$1 --port 25556

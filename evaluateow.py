@@ -21,7 +21,7 @@ model_dir = f"data/dump/{note}/{attack_name}/train_{dataset}_d{train}"
 assert os.path.exists(model_dir), model_dir
 
 print("Loading test dataset...")
-test_ds = get_ds(dataset, scenario="open-world")
+test_ds = get_ds(dataset, scenario="open-world", use_cache=True)
 test_ds.load_defended(test)
 num_classes = test_ds.num_classes()
 attack: wfpattack.DNNAttack = wfpattack.get_attack(attack_name)(args.length, num_classes, args.gpu)

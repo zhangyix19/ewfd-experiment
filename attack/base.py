@@ -4,7 +4,7 @@ from os.path import join
 from . import metrics
 import numpy as np
 import torch
-from torch.utils.data import DataLoader, TensorDataset
+from torch.utils.data import DataLoader, TensorDataset, WeightedRandomSampler
 from tqdm import tqdm
 
 import joblib
@@ -67,8 +67,17 @@ class DNNAttack(Attack):
 
     @staticmethod
     def load_array(features, labels, batch_size, is_train=True):
+        # long
+        labels_in_num = torch.argmax(labels, dim=1)
+        class_counts = torch.bincount(labels_in_num)
+        class_weights = len(labels) / class_counts.float()
+        sample_weights = class_weights[labels_in_num].tolist()
+        sampler = WeightedRandomSampler(sample_weights, num_samples=len(labels), replacement=True)
         dataset = TensorDataset(features, labels)
-        return DataLoader(dataset, batch_size, shuffle=is_train, drop_last=is_train)
+        if is_train:
+            return DataLoader(dataset, batch_size, shuffle=False, sampler=sampler)
+        else:
+            return DataLoader(dataset, batch_size, shuffle=False, drop_last=False)
 
     @staticmethod
     def writeWriter(writer, eval_result, epoch, notes):
